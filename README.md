@@ -8,7 +8,7 @@ A cloud version of the eShelf library catalog, built for the IT 412 Platform Tec
 - **Backend:** Node.js + Express
 - **Frontend:** HTML, CSS and vanilla JavaScript, styled after the original eShelf
 
-Users add books through a form. The browser sends them to the Express API, which validates the input and stores it in the cloud database. The book list is read back from the database, so it survives page refreshes and app restarts.
+Users add books through a form, then borrow and return copies from the catalog. The browser sends every action to the Express API, which validates it, applies the library rules (you can't borrow when no copies are left, or return more copies than the library owns) and stores the result in the cloud database. The book list is read back from the database, so it survives page refreshes and app restarts.
 
 ![System diagram](docs/system-diagram.png)
 
@@ -19,6 +19,8 @@ Users add books through a form. The browser sends them to the Express API, which
 | GET    | `/api/books`      | `200` + array of books    | `500` database error                      |
 | GET    | `/api/books/:id`  | `200` + one book          | `400` invalid id, `404` not found         |
 | POST   | `/api/books`      | `201` + the created book  | `400` missing/invalid fields or bad JSON  |
+| POST   | `/api/books/:id/borrow` | `200` + the book, one fewer copy available | `409` no copies left, `404` not found, `400` invalid id |
+| POST   | `/api/books/:id/return` | `200` + the book, one more copy available  | `409` all copies already returned, `404` not found, `400` invalid id |
 
 POST body (JSON):
 

@@ -72,6 +72,12 @@ function validateBook(body) {
   };
 }
 
+// Route ids must be positive whole numbers; returns null otherwise
+function parseId(raw) {
+  const id = Number(raw);
+  return Number.isInteger(id) && id >= 1 ? id : null;
+}
+
 // ---------- API routes ----------
 
 // GET /api/books -> list all books, newest first (200)
@@ -87,8 +93,8 @@ app.get('/api/books', async (req, res) => {
 
 // GET /api/books/:id -> one book (200), bad id (400), not found (404)
 app.get('/api/books/:id', async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id < 1) {
+  const id = parseId(req.params.id);
+  if (!id) {
     return res.status(400).json({ error: 'id must be a positive whole number' });
   }
   try {
@@ -111,8 +117,8 @@ app.post('/api/books', async (req, res) => {
   }
   try {
     const { rows } = await pool.query(
-      `INSERT INTO books (title, author, category, isbn, copies)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      `INSERT INTO books (title, author, category, isbn, copies, available_copies)
+       VALUES ($1, $2, $3, $4, $5, $5) RETURNING *`,
       [book.title, book.author, book.category, book.isbn, book.copies]
     );
     res.status(201).json(rows[0]);
@@ -122,6 +128,52 @@ app.post('/api/books', async (req, res) => {
   }
 });
 
+// Borrowing and returning share the same flow: one atomic UPDATE that only
+// succeeds if the rule allows it, so two people can't both take the last copy.
+async function changeAvailability(req, res, sql, conflictMessage) {
+  const id = parseId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ error: 'id must be a positive whole number' });
+  }
+  try {
+    const { rows } = await pool.query(sql, [id]);
+    if (rows.length === 1) {
+      return res.status(200).json(rows[0]);
+    }
+    // Nothing changed: either the book doesn't exist, or the rule said no
+    const found = await pool.query('SELECT 1 FROM books WHERE id = $1', [id]);
+    if (found.rows.length === 0) {
+      return res.status(404).json({ error: `No book with id ${id}` });
+    }
+    res.status(409).json({ error: conflictMessage });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  }
+}
+
+// POST /api/books/:id/borrow -> take one copy (200), none left (409), not found (404)
+app.post('/api/books/:id/borrow', (req, res) =>
+  changeAvailability(
+    req,
+    res,
+    `UPDATE books SET available_copies = available_copies - 1
+     WHERE id = $1 AND available_copies > 0 RETURNING *`,
+    'No copies left to borrow'
+  )
+);
+
+// POST /api/books/:id/return -> put one copy back (200), all on the shelf (409), not found (404)
+app.post('/api/books/:id/return', (req, res) =>
+  changeAvailability(
+    req,
+    res,
+    `UPDATE books SET available_copies = available_copies + 1
+     WHERE id = $1 AND available_copies < copies RETURNING *`,
+    'All copies are already on the shelf'
+  )
+);
+
 // Unknown /api route -> 404 JSON
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
@@ -129,7 +181,9 @@ app.use('/api', (req, res) => {
 
 // ---------- Startup ----------
 // Creates the table on first run, so you never need a SQL client.
-const createTable = `
+// The ALTER/UPDATE lines upgrade a books table made before borrowing was added:
+// they add available_copies and fill it with the full number of copies.
+const setupDatabase = `
   CREATE TABLE IF NOT EXISTS books (
     id SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
@@ -137,12 +191,16 @@ const createTable = `
     category VARCHAR(100),
     isbn VARCHAR(13),
     copies INTEGER NOT NULL DEFAULT 1 CHECK (copies BETWEEN 1 AND 100),
+    available_copies INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )
+  );
+  ALTER TABLE books ADD COLUMN IF NOT EXISTS available_copies INTEGER;
+  UPDATE books SET available_copies = copies WHERE available_copies IS NULL;
+  ALTER TABLE books ALTER COLUMN available_copies SET NOT NULL;
 `;
 
 pool
-  .query(createTable)
+  .query(setupDatabase)
   .then(() => {
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })

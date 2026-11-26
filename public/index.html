@@ -20,13 +20,6 @@
         </svg>
         Bookshelf
       </a>
-      <a class="nav-item" href="/api/books" target="_blank" rel="noopener">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="16 18 22 12 16 6"></polyline>
-          <polyline points="8 6 2 12 8 18"></polyline>
-        </svg>
-        API (JSON)
-      </a>
     </nav>
     <p class="sidebar-note">Hosted on Render &middot; Data in a managed PostgreSQL database</p>
   </aside>
@@ -68,6 +61,7 @@
 
     <section class="card">
       <h2>Books in the catalog <span id="book-count" class="count"></span></h2>
+      <p id="list-msg" role="status"></p>
       <table>
         <thead>
           <tr>
@@ -76,8 +70,9 @@
             <th>Author</th>
             <th>Category</th>
             <th>ISBN</th>
-            <th>Copies</th>
+            <th>Available</th>
             <th>Added</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="book-list"></tbody>
