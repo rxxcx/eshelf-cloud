@@ -8,7 +8,7 @@ A cloud version of the eShelf library catalog, built for the IT 412 Platform Tec
 - **Backend:** Node.js + Express
 - **Frontend:** HTML, CSS and vanilla JavaScript, styled after the original eShelf
 
-Users add books through a form, then borrow and return copies from the catalog. The browser sends every action to the Express API, which validates it, applies the library rules (you can't borrow when no copies are left, or return more copies than the library owns) and stores the result in the cloud database. The book list is read back from the database, so it survives page refreshes and app restarts.
+Users add, edit and delete books, and borrow and return copies from the catalog. The browser sends every action to the Express API, which validates it, applies the library rules (you can't borrow when no copies are left, return more copies than the library owns, cut the copy count below what is borrowed, or delete a book that is still out) and stores the result in the cloud database. The book list is read back from the database, so it survives page refreshes and app restarts.
 
 ![System diagram](docs/system-diagram.png)
 
@@ -19,6 +19,8 @@ Users add books through a form, then borrow and return copies from the catalog. 
 | GET    | `/api/books`      | `200` + array of books    | `500` database error                      |
 | GET    | `/api/books/:id`  | `200` + one book          | `400` invalid id, `404` not found         |
 | POST   | `/api/books`      | `201` + the created book  | `400` missing/invalid fields or bad JSON  |
+| PUT    | `/api/books/:id`  | `200` + the updated book  | `400` invalid fields, `404` not found, `409` copies set below the number borrowed |
+| DELETE | `/api/books/:id`  | `204` No Content          | `404` not found, `409` copies still borrowed |
 | POST   | `/api/books/:id/borrow` | `200` + the book, one fewer copy available | `409` no copies left, `404` not found, `400` invalid id |
 | POST   | `/api/books/:id/return` | `200` + the book, one more copy available  | `409` all copies already returned, `404` not found, `400` invalid id |
 
@@ -36,7 +38,7 @@ POST body (JSON):
 
 `title` and `author` are required. `category`, `isbn` (10 or 13 digits, dashes allowed) and `copies` (1 to 100, default 1) are optional.
 
-A Postman collection with all test requests is in [`postman/`](postman/). Import it, set the `baseUrl` variable to the live URL, and run it.
+A Postman collection with all 13 test requests is in [`postman/`](postman/). Import it and run it in order; `baseUrl` already points at the live app. The run creates one test book and deletes it at the end.
 
 ## Run locally
 

@@ -128,6 +128,75 @@ app.post('/api/books', async (req, res) => {
   }
 });
 
+// PUT /api/books/:id -> edit a book (200), invalid input (400), not found (404),
+// copies set below the number currently borrowed (409)
+app.put('/api/books/:id', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ error: 'id must be a positive whole number' });
+  }
+  const { errors, book } = validateBook(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+  try {
+    // Borrowed copies stay borrowed: available_copies moves by the same amount as copies.
+    // In SQL, every SET expression sees the OLD row, so "copies" here is the old count.
+    const { rows } = await pool.query(
+      `UPDATE books
+       SET title = $2, author = $3, category = $4, isbn = $5,
+           available_copies = available_copies + ($6 - copies),
+           copies = $6
+       WHERE id = $1 AND $6 >= copies - available_copies
+       RETURNING *`,
+      [id, book.title, book.author, book.category, book.isbn, book.copies]
+    );
+    if (rows.length === 1) {
+      return res.status(200).json(rows[0]);
+    }
+    const found = await pool.query(
+      'SELECT copies - available_copies AS borrowed FROM books WHERE id = $1',
+      [id]
+    );
+    if (found.rows.length === 0) {
+      return res.status(404).json({ error: `No book with id ${id}` });
+    }
+    const { borrowed } = found.rows[0];
+    res.status(409).json({
+      error: `copies can't be lower than the ${borrowed} ${borrowed === 1 ? 'copy' : 'copies'} currently borrowed`,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// DELETE /api/books/:id -> remove a book (204), not found (404),
+// copies still borrowed (409)
+app.delete('/api/books/:id', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ error: 'id must be a positive whole number' });
+  }
+  try {
+    const { rows } = await pool.query(
+      'DELETE FROM books WHERE id = $1 AND available_copies = copies RETURNING id',
+      [id]
+    );
+    if (rows.length === 1) {
+      return res.status(204).end(); // 204 No Content: deleted, nothing to send back
+    }
+    const found = await pool.query('SELECT 1 FROM books WHERE id = $1', [id]);
+    if (found.rows.length === 0) {
+      return res.status(404).json({ error: `No book with id ${id}` });
+    }
+    res.status(409).json({ error: 'Return all borrowed copies before deleting this book' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // Borrowing and returning share the same flow: one atomic UPDATE that only
 // succeeds if the rule allows it, so two people can't both take the last copy.
 async function changeAvailability(req, res, sql, conflictMessage) {

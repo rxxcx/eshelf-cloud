@@ -147,8 +147,20 @@ h1 {
 .success { color: #2f6b2f; }
 .error { color: #a12d2d; }
 
+/* Edit / Delete: quieter text buttons next to Borrow / Return */
+.btn-link {
+  background: transparent;
+  color: #6b4226;
+  padding: 5px 8px;
+  text-decoration: underline;
+}
+.btn-link:hover { background-color: #f4ede3; }
+.btn-danger { color: #a12d2d; }
+
 td.actions { white-space: nowrap; }
 td.actions .btn + .btn { margin-left: 6px; }
+tr.editing { background-color: #f3e6d6; }
+#form-card { scroll-margin-top: 20px; }
 td.none-left { color: #a12d2d; font-weight: 600; }
 
 /* ---------- Table ---------- */
