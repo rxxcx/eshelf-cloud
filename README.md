@@ -2,7 +2,7 @@
 
 A cloud version of the eShelf library catalog, built for the IT 412 Platform Technologies final project.
 
-- **Live app:** https://YOUR-APP.onrender.com <!-- replace after deploying -->
+- **Live app:** https://eshelf-cloud.onrender.com
 - **Hosting (PaaS):** Render Web Service (Node.js)
 - **Database:** Aiven for PostgreSQL (managed, free tier)
 - **Backend:** Node.js + Express
