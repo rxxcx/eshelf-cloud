@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eShelf - Book Catalog</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="logo">
+      <h2>eShelf</h2>
+      <span>Library Management System</span>
+    </div>
+    <nav class="nav-items">
+      <a class="nav-item active" href="/">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        Bookshelf
+      </a>
+      <a class="nav-item" href="/api/books" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        API (JSON)
+      </a>
+    </nav>
+    <p class="sidebar-note">Hosted on Render &middot; Data in a managed PostgreSQL database</p>
+  </aside>
+
+  <main class="main-content">
+    <h1>Bookshelf</h1>
+
+    <section class="card">
+      <h2>Add a book</h2>
+      <form id="book-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input id="title" class="form-control" maxlength="200" required />
+          </div>
+          <div class="form-group">
+            <label for="author">Author</label>
+            <input id="author" class="form-control" maxlength="150" required />
+          </div>
+          <div class="form-group">
+            <label for="category">Category <span class="optional">(optional)</span></label>
+            <input id="category" class="form-control" maxlength="100" placeholder="e.g. Fiction" />
+          </div>
+          <div class="form-group">
+            <label for="isbn">ISBN <span class="optional">(optional)</span></label>
+            <input id="isbn" class="form-control" maxlength="17" placeholder="10 or 13 digits" />
+          </div>
+          <div class="form-group">
+            <label for="copies">Copies</label>
+            <input id="copies" class="form-control" type="number" min="1" max="100" value="1" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn">Save book</button>
+          <p id="form-msg" role="status"></p>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Books in the catalog <span id="book-count" class="count"></span></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Category</th>
+            <th>ISBN</th>
+            <th>Copies</th>
+            <th>Added</th>
+          </tr>
+        </thead>
+        <tbody id="book-list"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
